@@ -1,5 +1,12 @@
 ## Instalation and configuration
 
+Create database file:
+
+```
+cd db
+cp empty.db data.db
+```
+
 Add Adafruit library:
 
 ```
