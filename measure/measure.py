@@ -32,8 +32,8 @@ try:
 
     measurments = read_temperature_and_humidity()
     print(measurments)
-    cursor.execute("INSERT INTO humidity VALUES (datetime('now'), {})".format(measurments["humidity"]))
-    cursor.execute("INSERT INTO air_temperature VALUES (datetime('now'), {})".format(measurments["temperature"]))
+    cursor.execute("INSERT INTO humidity VALUES (datetime('now', 'localtime'), {})".format(measurments["humidity"]))
+    cursor.execute("INSERT INTO air_temperature VALUES (datetime('now', 'localtime'), {})".format(measurments["temperature"]))
 
     cursor.close()
 
