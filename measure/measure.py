@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import os
 import sqlite3
 import time
 import numbers
@@ -26,7 +27,8 @@ def read_temperature_and_humidity():
 
 
 try:
-    connection = sqlite3.connect("../db/data.db")
+    script_path = os.path.abspath(os.path.dirname(__file__))
+    connection = sqlite3.connect(script_path + "/../db/data.db")
     cursor = connection.cursor()
     print("DB Init")
 
