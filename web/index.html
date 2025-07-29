@@ -32,7 +32,18 @@
                 <div class="card mb-4">
                     <h5 class="card-header">Zakres danych</h5>
                     <div class="card-body">
-
+                        <div class="row">
+                            <div class="col-auto">
+                                <label for="start-date-input">Data rozpoczęcia</label>
+                                <input type="text" class="form-control" id="start-date-input" placeholder="YYYY-MM-DD"
+                                    onchange="datesRangeSelection.updateDates()">
+                            </div>
+                            <div class="col-auto">
+                                <label for="end-date-input">Data zakończenia</label>
+                                <input type="text" class="form-control" id="end-date-input" placeholder="YYYY-MM-DD"
+                                    onchange="datesRangeSelection.updateDates()">
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -73,6 +84,47 @@
 
     <script>
         const { Subject, combineLatest, map } = rxjs;
+
+        const Utils = {
+            sleep: (time, units) => {
+                const ms = units === 's' ? time * 1000 : time;
+                return new Promise(resolve => setTimeout(resolve, ms));
+            },
+
+            Html: {
+                generateElement(name, properties) {
+                    const element = document.createElement(name);
+                    for (const [propertyName, propertyValue] of Object.entries(properties)) {
+                        element[propertyName] = propertyValue;
+                    }
+                    return element;
+                },
+            },
+
+            Date: {
+                format: (plainDate) => {
+                    const date = new Date(plainDate);
+
+                    const options = {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    };
+
+                    const localDateTimeString = date.toLocaleString(undefined, options);
+
+                    const [datePart, timePart] = localDateTimeString.split(', ');
+
+                    const [month, day, year] = datePart.split('/');
+
+                    return `${year}-${month}-${day}`;
+                }
+            }
+        }
 
         class AbstractRestService {
             constructor(restName) {
@@ -217,13 +269,18 @@
             }
 
             update(measurmentsData) {
+                if (this.chart) {
+                    this.chart.clear();
+                    this.chart.destroy();
+                }
+
                 const context = document.getElementById('measurments-chart').getContext('2d');
 
                 const labels = measurmentsData.humidityData.map(data => data.date);
                 const humidity = measurmentsData.humidityData.map(data => data.humidity);
                 const temperature = measurmentsData.airTemperatureData.map(data => data.temperature);
 
-                new Chart(context, {
+                this.chart = new Chart(context, {
                     type: 'line',
                     data: {
                         labels,
@@ -265,18 +322,45 @@
             }
         }
 
+        class DatesRangeSelection {
+            constructor(store) {
+                this.store = store;
+
+                this.startDateInput = document.getElementById('start-date-input');
+                this.endDateInput = document.getElementById('end-date-input');
+            }
+
+            init() {
+                this.store.getMeasurmentsDataRange$().subscribe(range => {
+                    this.startDateInput.value = Utils.Date.format(range.startDate);
+                    this.endDateInput.value = Utils.Date.format(range.endDate);
+                });
+            }
+
+            updateDates() {
+                this.store.setMeasurmentsDataRange({
+                    startDate: new Date(this.startDateInput.value),
+                    endDate: new Date(this.endDateInput.value)
+                });
+            }
+        }
+
         const dataRestService = new RestService();
         const store = new Store();
 
         const measurmentsTable = new MeasurmentsTable(store);
         measurmentsTable.init();
 
-        const chart = new ChartCanvas(store);
-        chart.init();
+        const chartCanvas = new ChartCanvas(store);
+        chartCanvas.init();
+
+        const datesRangeSelection = new DatesRangeSelection(store);
+        window.datesRangeSelection = datesRangeSelection;
+        datesRangeSelection.init();
 
         const currentDate = new Date();
         const startDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 0, 0, 0);
-        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate(), 23, 59, 59);
+        const endDate = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate() + 1, 0, 0, 0);
         store.setMeasurmentsDataRange({ startDate, endDate });
 
         dataRestService.get().subscribe(data => {
