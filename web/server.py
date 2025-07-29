@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import os
 import sqlite3
